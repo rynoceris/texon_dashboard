@@ -155,46 +155,27 @@ switch ($service) {
     case 'brightpearl':
         // Get Brightpearl credentials
         $accountCode = isset($_POST['account_code']) ? trim($_POST['account_code']) : '';
-        $apiKey = isset($_POST['api_key']) ? trim($_POST['api_key']) : '';
-        $accessToken = isset($_POST['access_token']) ? trim($_POST['access_token']) : '';
-        $refreshToken = isset($_POST['refresh_token']) ? trim($_POST['refresh_token']) : '';
-        $tokenExpires = isset($_POST['token_expires']) ? trim($_POST['token_expires']) : '';
+        $appRef = isset($_POST['app_ref']) ? trim($_POST['app_ref']) : '';
+        $appToken = isset($_POST['app_token']) ? trim($_POST['app_token']) : '';
         
         // Validate required fields
-        if (empty($accountCode) || empty($apiKey) || empty($accessToken)) {
+        if (empty($accountCode) || empty($appRef) || empty($appToken)) {
             jsonResponse([
                 'success' => false,
-                'message' => 'Account code, API key, and access token are required'
+                'message' => 'Account code, App Reference, and Staff Token are required'
             ], 400);
-        }
-        
-        // Convert token expiration to MySQL datetime format
-        $tokenExpiresAt = null;
-        if (!empty($tokenExpires)) {
-            $tokenExpiresAt = date('Y-m-d H:i:s', strtotime($tokenExpires));
-        }
-        
-        // Test connection if requested
-        if ($isTest) {
-            // Test Brightpearl connection logic
-            // This would normally involve making an API request to validate the credentials
-            
-            // For now, just simulate a successful connection
-            jsonResponse([
-                'success' => true,
-                'message' => 'Connection to Brightpearl API successful'
-            ]);
         }
         
         // Save credentials
         $credentials = [
-            'api_key' => $apiKey,
+            'api_key' => $appToken,
             'api_secret' => null,
-            'access_token' => $accessToken,
-            'refresh_token' => $refreshToken,
-            'expires_at' => $tokenExpiresAt,
+            'access_token' => null,
+            'refresh_token' => null,
+            'expires_at' => null,
             'additional_data' => json_encode([
-                'account_code' => $accountCode
+                'account_code' => $accountCode,
+                'app_ref' => $appRef
             ])
         ];
         

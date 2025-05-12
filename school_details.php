@@ -131,7 +131,37 @@ include 'views/partials/header.php';
                                         foreach ($topStaff as $staff): 
                                         ?>
                                             <li class="list-group-item">
-                                                <?php echo htmlspecialchars($staff['first_name'] . ' ' . $staff['last_name']); ?>
+                                                <?php
+                                                if (isset($staff['first_name']) && isset($staff['last_name'])) {
+                                                    // Case 1: If separate name fields are available
+                                                    $staffName = '';
+                                                    
+                                                    if (isset($staff['title']) && !empty($staff['title'])) {
+                                                        $staffName .= $staff['title'] . ' ';
+                                                    }
+                                                    
+                                                    $staffName .= $staff['first_name'];
+                                                    
+                                                    if (isset($staff['middle_name']) && !empty($staff['middle_name'])) {
+                                                        $staffName .= ' ' . $staff['middle_name'];
+                                                    }
+                                                    
+                                                    $staffName .= ' ' . $staff['last_name'];
+                                                    
+                                                    if (isset($staff['suffix']) && !empty($staff['suffix'])) {
+                                                        $staffName .= ', ' . $staff['suffix'];
+                                                    }
+                                                } elseif (isset($staff['full_name'])) {
+                                                    // Case 2: If only full_name field is available, parse it
+                                                    $staffName = formatNameForDisplay($staff['full_name']);
+                                                } elseif (isset($staff['name'])) {
+                                                    // Case 3: If only name field is available, parse it
+                                                    $staffName = formatNameForDisplay($staff['name']);
+                                                } else {
+                                                    // Default if no name fields are found
+                                                    $staffName = 'Staff Member';
+                                                }
+                                                echo htmlspecialchars($staffName); ?>
                                                 <?php if (!empty($staff['title'])): ?>
                                                     <br><small class="text-muted"><?php echo htmlspecialchars($staff['title']); ?></small>
                                                 <?php endif; ?>
@@ -295,7 +325,36 @@ include 'views/partials/header.php';
                     <tbody>
                         <?php foreach ($schoolData['csd']['data']['staff'] as $staff): ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($staff['first_name'] . ' ' . $staff['last_name']); ?></td>
+                            <td><?php if (isset($staff['first_name']) && isset($staff['last_name'])) {
+                                // Case 1: If separate name fields are available
+                                $staffName = '';
+                                
+                                if (isset($staff['title']) && !empty($staff['title'])) {
+                                    $staffName .= $staff['title'] . ' ';
+                                }
+                                
+                                $staffName .= $staff['first_name'];
+                                
+                                if (isset($staff['middle_name']) && !empty($staff['middle_name'])) {
+                                    $staffName .= ' ' . $staff['middle_name'];
+                                }
+                                
+                                $staffName .= ' ' . $staff['last_name'];
+                                
+                                if (isset($staff['suffix']) && !empty($staff['suffix'])) {
+                                    $staffName .= ', ' . $staff['suffix'];
+                                }
+                            } elseif (isset($staff['full_name'])) {
+                                // Case 2: If only full_name field is available, parse it
+                                $staffName = formatNameForDisplay($staff['full_name']);
+                            } elseif (isset($staff['name'])) {
+                                // Case 3: If only name field is available, parse it
+                                $staffName = formatNameForDisplay($staff['name']);
+                            } else {
+                                // Default if no name fields are found
+                                $staffName = 'Staff Member';
+                            }
+                            echo htmlspecialchars($staffName); ?></td>
                             <td><?php echo htmlspecialchars($staff['title'] ?? 'N/A'); ?></td>
                             <td><?php echo htmlspecialchars($staff['department'] ?? 'N/A'); ?></td>
                             <td><?php echo htmlspecialchars($staff['email'] ?? 'N/A'); ?></td>

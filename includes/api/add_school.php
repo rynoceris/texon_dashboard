@@ -14,6 +14,7 @@ require_once '../../includes/auth.php';
 require_once '../../includes/functions.php';
 
 // Load data source files
+require_once '../../sources/data_source.php';
 require_once '../../sources/csd_source.php';
 require_once '../../sources/brightpearl_source.php';
 require_once '../../sources/klaviyo_source.php';
@@ -76,8 +77,25 @@ if ($existingSchool) {
     ], 400);
 }
 
-// Get school name from domain
-$schoolName = getSchoolNameFromDomain($domain);
+// First check CSD to get an accurate school name if possible
+$csdSource = new CSDSource();
+if ($csdSource->isAvailable()) {
+    $csdData = $csdSource->getSchoolData($domain);
+    
+    // If CSD found the school, use its name
+    if ($csdData['success'] && isset($csdData['data']['school']['school_name'])) {
+        $schoolName = $csdData['data']['school']['school_name'];
+        logMessage("Using school name '{$schoolName}' from CSD for domain '{$domain}'", 'info');
+    } else {
+        // If no CSD match, derive name from domain
+        $schoolName = getSchoolNameFromDomain($domain);
+        logMessage("No CSD match for '{$domain}', using derived name: '{$schoolName}'", 'info');
+    }
+} else {
+    // If CSD is not available, derive name from domain
+    $schoolName = getSchoolNameFromDomain($domain);
+    logMessage("CSD not available, using derived name for '{$domain}': '{$schoolName}'", 'info');
+}
 
 // Insert basic school record
 try {
@@ -98,6 +116,7 @@ try {
         'success' => true,
         'message' => 'School added successfully',
         'school_id' => $schoolId,
+        'school_name' => $schoolName,
         'data' => $schoolData
     ]);
 } catch (Exception $e) {
@@ -132,16 +151,33 @@ function refreshSchoolData($domain) {
         // Update school data with CSD information
         if ($csdData['success']) {
             $staffCount = $csdData['data']['total_staff'] ?? 0;
-            $csdSchoolId = $csdData['data']['school']['school_id'] ?? null;
+            $csdSchoolId = $csdData['data']['school']['id'] ?? null;
             
-            $db->update(DB_PREFIX . "school_data", 
-                [
-                    'staff_count' => $staffCount,
-                    'csd_school_id' => $csdSchoolId
-                ],
-                "domain = ?",
-                [$domain]
-            );
+            // If we have a school name from CSD, use it to update our record
+            if (isset($csdData['data']['school']['school_name'])) {
+                $schoolName = $csdData['data']['school']['school_name'];
+                
+                $db->update(DB_PREFIX . "school_data", 
+                    [
+                        'school_name' => $schoolName,
+                        'staff_count' => $staffCount,
+                        'csd_school_id' => $csdSchoolId
+                    ],
+                    "domain = ?",
+                    [$domain]
+                );
+                
+                logMessage("Updated school name to '{$schoolName}' from CSD for domain '{$domain}'", 'info');
+            } else {
+                $db->update(DB_PREFIX . "school_data", 
+                    [
+                        'staff_count' => $staffCount,
+                        'csd_school_id' => $csdSchoolId
+                    ],
+                    "domain = ?",
+                    [$domain]
+                );
+            }
         }
     }
     

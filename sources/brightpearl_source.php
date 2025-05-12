@@ -40,18 +40,17 @@ class BrightpearlSource extends DataSource {
     public function isAvailable() {
         $credentials = $this->getCredentials();
         
-        if (!$credentials || empty($credentials['api_key']) || empty($credentials['access_token'])) {
+        if (!$credentials || empty($credentials['api_key'])) {
             return false;
         }
         
-        // Check if token is expired
-        if (!empty($credentials['expires_at']) && strtotime($credentials['expires_at']) < time()) {
-            // Try to refresh token
-            $refreshResult = $this->refreshToken($credentials['refresh_token']);
-            
-            if (!$refreshResult['success']) {
-                return false;
-            }
+        // Get the account code from additional_data
+        $additionalData = !empty($credentials['additional_data']) 
+            ? json_decode($credentials['additional_data'], true) 
+            : [];
+        
+        if (empty($additionalData['account_code'])) {
+            return false;
         }
         
         return true;
@@ -173,14 +172,27 @@ class BrightpearlSource extends DataSource {
      * @param array $data Request body (for POST/PUT)
      * @return array API response
      */
+    // Update the makeApiRequest method:
     private function makeApiRequest($method, $endpoint, $params = [], $data = null) {
         $credentials = $this->getCredentials();
         
+        // Get the account code and app ref from additional_data
+        $additionalData = !empty($credentials['additional_data']) 
+            ? json_decode($credentials['additional_data'], true) 
+            : [];
+        
+        $accountCode = $additionalData['account_code'] ?? $this->accountCode;
+        $appRef = $additionalData['app_ref'] ?? 'texon_dashboard';
+        $appToken = $credentials['api_key'] ?? '';
+        
         $curl = curl_init();
         
+        // Updated headers based on Brightpearl's documentation
         $headers = [
             'Content-Type: application/json',
-            'brightpearl-auth: ' . $credentials['access_token']
+            'Accept: application/json',
+            'brightpearl-app-ref: ' . $appRef,
+            'brightpearl-staff-token: ' . $appToken
         ];
         
         // Add query parameters to URL
@@ -193,6 +205,7 @@ class BrightpearlSource extends DataSource {
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CUSTOMREQUEST => $method,
             CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_VERBOSE => DEBUG_MODE,
         ]);
         
         // Add request body for POST/PUT requests
@@ -212,9 +225,19 @@ class BrightpearlSource extends DataSource {
         $this->logApiRequest($endpoint, $params, $response, $success);
         
         if (!$success) {
+            $errorMessage = $error;
+            if (empty($errorMessage) && !empty($response)) {
+                $responseData = json_decode($response, true);
+                if (isset($responseData['response']) && isset($responseData['response']['errors'])) {
+                    $errorMessage = $responseData['response']['errors'][0]['message'] ?? 'Unknown error';
+                } else {
+                    $errorMessage = $response; // Just show the raw response if we can't parse it
+                }
+            }
+            
             return [
                 'success' => false,
-                'message' => "API request failed: {$error}",
+                'message' => "API request failed: {$errorMessage}",
                 'status_code' => $statusCode,
                 'data' => null
             ];
