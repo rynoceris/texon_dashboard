@@ -171,7 +171,7 @@ include 'views/partials/header.php';
                                     
                                     <?php if (count($staffMembers) > 5): ?>
                                         <p class="mt-2">
-                                            <a href="#" class="view-all-staff" data-toggle="modal" data-target="#staffModal">
+                                            <a href="#" class="view-all-staff" data-bs-toggle="modal" data-bs-target="#staffModal">
                                                 View all <?php echo count($staffMembers); ?> staff members
                                             </a>
                                         </p>
@@ -228,7 +228,7 @@ include 'views/partials/header.php';
                                     
                                     <?php if (count($orders) > 5): ?>
                                         <p class="mt-2">
-                                            <a href="#" class="view-all-orders" data-toggle="modal" data-target="#ordersModal">
+                                            <a href="#" class="view-all-orders" data-bs-toggle="modal" data-bs-target="#ordersModal">
                                                 View all <?php echo count($orders); ?> orders
                                             </a>
                                         </p>
@@ -281,7 +281,7 @@ include 'views/partials/header.php';
                                     
                                     <?php if (count($profiles) > 5): ?>
                                         <p class="mt-2">
-                                            <a href="#" class="view-all-profiles" data-toggle="modal" data-target="#profilesModal">
+                                            <a href="#" class="view-all-profiles" data-bs-toggle="modal" data-bs-target="#profilesModal">
                                                 View all <?php echo count($profiles); ?> profiles
                                             </a>
                                         </p>
@@ -308,9 +308,7 @@ include 'views/partials/header.php';
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="staffModalLabel">Staff Members - <?php echo htmlspecialchars($school['school_name']); ?></h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <table class="table table-striped">
@@ -364,7 +362,7 @@ include 'views/partials/header.php';
                 </table>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -378,9 +376,7 @@ include 'views/partials/header.php';
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="ordersModalLabel">Orders - <?php echo htmlspecialchars($school['school_name']); ?></h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <table class="table table-striped">
@@ -407,7 +403,7 @@ include 'views/partials/header.php';
                 </table>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -421,9 +417,7 @@ include 'views/partials/header.php';
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="profilesModalLabel">Email Profiles - <?php echo htmlspecialchars($school['school_name']); ?></h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <table class="table table-striped">
@@ -448,11 +442,62 @@ include 'views/partials/header.php';
                 </table>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
 </div>
 <?php endif; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Helper function to properly clean up modal elements
+    function cleanupModal() {
+        // Remove modal-backdrop if it exists
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+        
+        // Reset body classes and styles
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+    }
+    
+    // Fix modal triggers using old Bootstrap 4 syntax
+    document.querySelectorAll('[data-toggle="modal"]').forEach(function(element) {
+        element.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('data-target');
+            if (targetId) {
+                const modalElement = document.querySelector(targetId);
+                if (modalElement) {
+                    const bsModal = new bootstrap.Modal(modalElement);
+                    bsModal.show();
+                }
+            }
+        });
+    });
+    
+    // Add specific event listeners to modals
+    document.querySelectorAll('.modal').forEach(function(modalEl) {
+        modalEl.addEventListener('hidden.bs.modal', function(event) {
+            // Clean up any remaining backdrop
+            cleanupModal(this);
+            
+            // Focus the main container
+            setTimeout(function() {
+                const mainContent = document.querySelector('main');
+                if (mainContent) {
+                    mainContent.setAttribute('tabindex', '-1');
+                    mainContent.focus();
+                    mainContent.removeAttribute('tabindex');
+                }
+            }, 10);
+        });
+    });
+});
+</script>
 
 <?php include 'views/partials/footer.php'; ?>

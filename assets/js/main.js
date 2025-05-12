@@ -6,11 +6,20 @@
 
 // Initialize when the document is ready
 $(document).ready(function() {
-    // Enable Bootstrap tooltips
-    $('[data-toggle="tooltip"]').tooltip();
+    // Enable Bootstrap tooltips (Bootstrap 5 syntax)
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
     
-    // Enable Bootstrap popovers
-    $('[data-toggle="popover"]').popover();
+    // Enable Bootstrap popovers (Bootstrap 5 syntax)
+    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+        return new bootstrap.Popover(popoverTriggerEl);
+    });
+    
+    // Fix Bootstrap 5 modals
+    fixBootstrapModals();
     
     // Initialize data tables if they exist
     if ($.fn.DataTable && $('.data-table').length) {
@@ -40,6 +49,58 @@ $(document).ready(function() {
         refreshSchoolData($(this).data('domain'));
     });
 });
+
+/**
+ * Fix Bootstrap 5 modal backdrop and accessibility issues
+ */
+function fixBootstrapModals() {
+    // Helper function to properly clean up modal elements
+    function cleanupModal() {
+        // Remove modal-backdrop if it exists
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+        
+        // Reset body classes and styles
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+    }
+    
+    // Add listeners to all modals
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('hidden.bs.modal', function() {
+            // Clean up any remaining backdrop
+            cleanupModal();
+            
+            // Find the button that opened this modal
+            const modalId = this.id;
+            const triggerButton = document.querySelector(`[data-bs-target="#${modalId}"]`);
+            
+            // Focus the trigger button or a fallback
+            setTimeout(function() {
+                if (triggerButton) {
+                    triggerButton.focus();
+                } else {
+                    const mainContent = document.querySelector('main');
+                    if (mainContent) {
+                        mainContent.setAttribute('tabindex', '-1');
+                        mainContent.focus();
+                        mainContent.removeAttribute('tabindex');
+                    }
+                }
+            }, 10);
+        });
+    });
+    
+    // Handle ESC key globally
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.querySelector('.modal.show')) {
+            cleanupModal();
+        }
+    });
+}
 
 /**
  * Setup AJAX defaults for the application
@@ -100,20 +161,20 @@ function validateForms() {
  * Handle sidebar toggle on mobile
  */
 function handleSidebarToggle() {
-    // Toggle sidebar on mobile
-    $('.navbar-toggler').on('click', function() {
-        $('#sidebarMenu').toggleClass('show');
+    // Toggle sidebar on mobile (Bootstrap 5 syntax)
+    document.querySelector('.navbar-toggler')?.addEventListener('click', function() {
+        document.querySelector('#sidebarMenu')?.classList.toggle('show');
     });
     
     // Close sidebar when clicking outside on mobile
-    $(document).on('click', function(e) {
-        if ($(window).width() < 768) {
-            var sidebar = $('#sidebarMenu');
-            var toggler = $('.navbar-toggler');
+    document.addEventListener('click', function(e) {
+        if (window.innerWidth < 768) {
+            const sidebar = document.querySelector('#sidebarMenu');
+            const toggler = document.querySelector('.navbar-toggler');
             
-            if (!sidebar.is(e.target) && sidebar.has(e.target).length === 0 &&
-                !toggler.is(e.target) && toggler.has(e.target).length === 0) {
-                sidebar.removeClass('show');
+            if (sidebar && !sidebar.contains(e.target) && 
+                toggler && !toggler.contains(e.target)) {
+                sidebar.classList.remove('show');
             }
         }
     });
@@ -212,14 +273,12 @@ function showNotification(message, type = 'info', duration = 5000) {
     // Create a unique ID for this notification
     const notificationId = 'notification-' + Date.now();
     
-    // Create notification HTML
+    // Create notification HTML with Bootstrap 5 syntax
     const notificationHtml = `
-        <div id="${notificationId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="${duration}">
+        <div id="${notificationId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="${duration}">
             <div class="toast-header ${notificationClass} text-white">
-                <strong class="mr-auto">Notification</strong>
-                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <strong class="me-auto">Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
             <div class="toast-body">
                 ${message}
@@ -230,8 +289,9 @@ function showNotification(message, type = 'info', duration = 5000) {
     // Append notification to container
     $('#notification-container').append(notificationHtml);
     
-    // Show the notification
-    $(`#${notificationId}`).toast('show');
+    // Initialize and show the toast with Bootstrap 5
+    var toast = new bootstrap.Toast(document.getElementById(notificationId));
+    toast.show();
     
     // Remove notification after it's hidden
     $(`#${notificationId}`).on('hidden.bs.toast', function() {
@@ -249,7 +309,7 @@ function showLoading() {
             <div id="loading-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 9999;">
                 <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white;">
                     <div class="spinner-border" role="status">
-                        <span class="sr-only">Loading...</span>
+                        <span class="visually-hidden">Loading...</span>
                     </div>
                     <div class="mt-2">Loading...</div>
                 </div>

@@ -41,7 +41,7 @@ include 'views/partials/header.php';
 			<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
 				<h1 class="h2">Schools Management</h1>
 				<div class="btn-toolbar mb-2 mb-md-0">
-					<button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addSchoolModal">
+					<button type="button" class="btn btn-sm btn-primary" id="addSchoolBtn" data-bs-toggle="modal" data-bs-target="#addSchoolModal">
 						<i class="fas fa-plus"></i> Add School
 					</button>
 				</div>
@@ -100,7 +100,7 @@ include 'views/partials/header.php';
 							<tbody id="schoolsTableBody">
 								<?php if (empty($schools)): ?>
 									<tr>
-										<td colspan="8" class="text-center">No schools found. <a href="#" data-bs-toggle="modal" data-bs-target="#addSchoolModal">Add a school</a>.</td>
+										<td colspan="8" class="text-center">No schools found. <a href="#" class="add-school-link" data-bs-toggle="modal" data-bs-target="#addSchoolModal">Add a school</a>.</td>
 									</tr>
 								<?php else: ?>
 									<?php foreach ($schools as $school): ?>
@@ -189,6 +189,19 @@ include 'views/partials/header.php';
 
 <script>
 $(document).ready(function() {
+	// Make sure Bootstrap Modal is available
+	console.log("Bootstrap available:", typeof bootstrap !== 'undefined');
+	console.log("Bootstrap Modal available:", typeof bootstrap !== 'undefined' && typeof bootstrap.Modal !== 'undefined');
+	
+	// Ensure Add School button works with manual event listener as backup
+	$('#addSchoolBtn').on('click', function() {
+		console.log('Add School button clicked');
+		if (typeof bootstrap !== 'undefined' && typeof bootstrap.Modal !== 'undefined') {
+			var addSchoolModal = new bootstrap.Modal(document.getElementById('addSchoolModal'));
+			addSchoolModal.show();
+		}
+	});
+	
 	// Add school form submission
 	$('#addSchoolButton').on('click', function() {
 		var domain = $('#schoolDomain').val().trim();
@@ -281,6 +294,23 @@ $(document).ready(function() {
 			}
 		});
 	}
+	
+	// Initialize modals with Bootstrap 5
+	var modals = document.querySelectorAll('.modal');
+	modals.forEach(function(modalEl) {
+		new bootstrap.Modal(modalEl, {
+			backdrop: true,
+			keyboard: true,
+			focus: true
+		});
+	});
+	
+	// Also ensure "Add School" link in empty table works
+	$('.add-school-link').on('click', function(e) {
+		e.preventDefault();
+		var addSchoolModal = new bootstrap.Modal(document.getElementById('addSchoolModal'));
+		addSchoolModal.show();
+	});
 	
 	// Refresh school button
 	$('.refresh-school-btn').on('click', function() {
@@ -414,7 +444,7 @@ $(document).ready(function() {
 		$('#deleteSchoolName').text(name);
 		$('#confirmDeleteButton').data('domain', domain);
 		
-		// Show the modal
+		// Show the modal - use Bootstrap 5 syntax
 		var deleteModal = new bootstrap.Modal(document.getElementById('deleteSchoolModal'));
 		deleteModal.show();
 	});
@@ -524,6 +554,85 @@ $(document).ready(function() {
 			$(this).remove();
 		});
 	}
+});
+
+// Fix for modal accessibility and backdrop issues
+document.addEventListener('DOMContentLoaded', function() {
+	// Get references to the modals
+	const addSchoolModal = document.getElementById('addSchoolModal');
+	const deleteSchoolModal = document.getElementById('deleteSchoolModal');
+	
+	// Helper function to properly clean up modal elements
+	function cleanupModal(modalEl) {
+		// Remove modal-backdrop if it exists
+		const backdrop = document.querySelector('.modal-backdrop');
+		if (backdrop) {
+			backdrop.remove();
+		}
+		
+		// Reset body classes and styles
+		document.body.classList.remove('modal-open');
+		document.body.style.overflow = '';
+		document.body.style.paddingRight = '';
+	}
+	
+	// Add specific event listeners to each modal
+	if (addSchoolModal) {
+		addSchoolModal.addEventListener('hidden.bs.modal', function(event) {
+			// Clean up any remaining backdrop
+			cleanupModal(this);
+			
+			// Focus the add school button
+			setTimeout(function() {
+				const addSchoolBtn = document.getElementById('addSchoolBtn');
+				if (addSchoolBtn) {
+					addSchoolBtn.focus();
+				}
+			}, 10);
+		});
+	}
+	
+	if (deleteSchoolModal) {
+		deleteSchoolModal.addEventListener('hidden.bs.modal', function(event) {
+			// Clean up any remaining backdrop
+			cleanupModal(this);
+			
+			// Return focus to the page
+			setTimeout(function() {
+				const mainContent = document.querySelector('main');
+				if (mainContent) {
+					mainContent.setAttribute('tabindex', '-1');
+					mainContent.focus();
+					mainContent.removeAttribute('tabindex');
+				}
+			}, 10);
+		});
+	}
+	
+	// Ensure modal buttons work properly
+	document.querySelectorAll('[data-bs-toggle="modal"]').forEach(button => {
+		button.addEventListener('click', function(e) {
+			const targetSelector = this.getAttribute('data-bs-target');
+			if (targetSelector) {
+				// Clean up any existing backdrops before showing new modal
+				cleanupModal();
+				
+				// Use Bootstrap's Modal API to show the modal
+				const targetModal = document.querySelector(targetSelector);
+				if (targetModal) {
+					const bsModal = new bootstrap.Modal(targetModal);
+					bsModal.show();
+				}
+			}
+		});
+	});
+	
+	// Handle ESC key globally to ensure modal backdrops are properly removed
+	document.addEventListener('keydown', function(e) {
+		if (e.key === 'Escape' && document.querySelector('.modal.show')) {
+			cleanupModal();
+		}
+	});
 });
 </script>
 
